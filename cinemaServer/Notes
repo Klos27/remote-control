@@ -1,0 +1,36 @@
+Przed instalacją MariaDB:
+sudo mysql -u root # I had to use "sudo" since it was new installation
+
+mysql> USE mysql;
+mysql> UPDATE user SET plugin='mysql_native_password' WHERE User='root';
+mysql> FLUSH PRIVILEGES;
+mysql> exit;
+
+sudo service mysql restart
+--------
+Teraz dopiero można odpalić ten skrypt instalacyjny
+
+
+
+mysql -u cinemadb -p
+----------
+use cinemadb;
+CREATE TABLE `cinemadb`.`switches` (
+`id` INT NOT NULL AUTO_INCREMENT,
+`name` VARCHAR(20) NOT NULL,
+`type` VARCHAR(20) NOT NULL,
+`status` INT NOT NULL,
+`value` INT NOT NULL,
+PRIMARY KEY (`id`));
+
+
+CREATE TABLE `cinemadb`.`users` (
+`id` INT NOT NULL AUTO_INCREMENT,
+`username` VARCHAR(20) NOT NULL,
+`password` VARCHAR(20) NOT NULL,
+PRIMARY KEY (`id`));
+
+CREATE TABLE `cinemadb`.`timestamp` (
+`id` INT NOT NULL AUTO_INCREMENT,
+`time` DATETIME NOT NULL,
+PRIMARY KEY (`id`));
