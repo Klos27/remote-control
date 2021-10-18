@@ -5,8 +5,8 @@ from flask_httpauth import HTTPBasicAuth
 from flask import abort
 import mysql.connector as mariadb
 from datetime import datetime, timedelta
-import validator
-import converter
+#import validator
+#import converter
 
 #import sys
 #sys.setDefaultEncoding('utf-8')
@@ -25,6 +25,70 @@ import converter
 - [optional] Do something with timezones?
 
 """
+
+presets = [
+	#presetId, [[switchNo, status, value]]
+	[1, [["1", 1, 0],
+		["2", 1, 0],
+		["3", 1, 0],
+		["4", 1, 0],
+		["5", 0, 0],
+		["6", 0, 0],
+		["7", 0, 0],
+		["8", 0, 0],
+		["9", 0, 0],
+		["10", 0, 0],
+		]
+	],
+	[2, [["1", 0, 0],
+		["2", 0, 0],
+		["3", 0, 0],
+		["4", 0, 0],
+		["5", 1, 0],
+		["6", 1, 0],
+		["7", 1, 0],
+		["8", 1, 0],
+		["9", 0, 0],
+		["10", 0, 0],
+		]
+	],
+	[3, [["1", 0, 0],
+		["2", 0, 0],
+		["3", 0, 0],
+		["4", 0, 0],
+		["5", 0, 0],
+		["6", 0, 0],
+		["7", 0, 0],
+		["8", 0, 0],
+		["9", 1, 0],
+		["10", 1, 0],
+		]
+	],
+    [100, [["1", 0, 0],
+		   ["2", 0, 0],
+		   ["3", 0, 0],
+		   ["4", 0, 0],
+		   ["5", 0, 0],
+		   ["6", 0, 0],
+		   ["7", 0, 0],
+		   ["8", 0, 0],
+		   ["9", 0, 0],
+		   ["10", 0, 0],
+		  ]
+	],
+    [101, [["1", 1, 0],
+		   ["2", 1, 0],
+		   ["3", 1, 0],
+		   ["4", 1, 0],
+		   ["5", 1, 0],
+		   ["6", 1, 0],
+		   ["7", 1, 0],
+		   ["8", 1, 0],
+		   ["9", 1, 0],
+		   ["10", 1, 0],
+		  ]
+	],
+]
 
 # ===============================================================
 # ====================[ DATABASE SETTINGS ]======================
@@ -101,91 +165,80 @@ def page_not_found(error):
 # ===============================================================
 # DATE IN ISO 8601 FORMAT yyyymmddThhmmssZ (i.e. 20180829T074657Z)
 
-@app.route('/set', methods=['GET'])
-@app.route('/set/<integer:switchNo>/<integer:value>', methods=['GET'])
+#@app.route('/set', methods=['GET'])
+@app.route('/set/<int:switchNo>/<int:status>', methods=['GET'])
+@app.route('/set/<int:switchNo>/<int:status>/<int:value>', methods=['GET'])
 @auth.login_required
-def getHistory(switchNo = None, value = None):
-	global mariadb_connection
-	if mariadb_connection.is_connected() == False:
-		openConnection()
-	try:
-		validationFlag = True
-		if(dateFrom == None or dateTo == None):
-			# default one day before
-			now = datetime.now()
-			dateTo = now.strftime("%Y-%m-%d %H:%M:%S")
-			dateFrom = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
-		elif (not validator.isIso8601(dateFrom) or not validator.isIso8601(dateTo)):
-			validationFlag = False
-		else:
-			dateFrom = converter.iso8601toDateStr(dateFrom) 
-			dateTo = converter.iso8601toDateStr(dateTo)
-		measurements = []
-		if validationFlag:
-			cursor = mariadb_connection.cursor()
-			cursor.execute("SELECT id, DATE_FORMAT(time, \"%d-%m-%Y %T\"), tempinside1, tempinside2, tempoutside, pressure, humidity FROM measurements WHERE time between %s and %s", (dateFrom, dateTo))
-			for id, time, tempinside1, tempinside2, tempoutside, pressure, humidity in cursor:
-				measurements.append({'id': id, 'time': time, 'tempinside1': tempinside1, 'tempinside2': tempinside2, 'tempoutside': tempoutside, 'pressure': pressure, 'humidity': humidity})
-			cursor.close()
-		else:
-			err = [{
-				'type' : 'error',
-				'number' : '400',
-				'description' : 'Wrong GET parameters'
-			}]
-			return jsonify({'responseType': 'notification', 'notification': err})
-	except mariadb.Error as error:
-		print("Error: {}".format(error))
-	#mariadb_connection.commit()
-	return jsonify({'responseType': 'measurements', 'measurements': measurements})
+def setSwitch(switchNo, status, value = None):
+	updateSwitch(switchNo, status, value)
+	return getStatus()
 
 # ===============================================================
 # ===================[ LATEST MEASUREMENT ]======================
 # ===============================================================
 
-@app.route('/current', methods=['GET'])
-#@auth.login_required
-def getCurrent():
+@app.route('/status', methods=['GET'])
+@auth.login_required
+def getStatus():
 	global mariadb_connection
 	if mariadb_connection.is_connected() == False:
 		openConnection()
 	try:
-		measurement = []
+		switches = []
 		cursor = mariadb_connection.cursor()
-		cursor.execute("SELECT id, DATE_FORMAT(time, \"%d-%m-%Y %T\"), tempinside1, tempinside2, tempoutside, pressure, humidity FROM measurements WHERE id = (SELECT MAX(id) FROM measurements)")
-		for id, time, tempinside1, tempinside2, tempoutside, pressure, humidity in cursor:
-			measurement.append({'id': id, 'time': time, 'tempinside1': tempinside1, 'tempinside2': tempinside2, 'tempoutside': tempoutside, 'pressure': pressure, 'humidity': humidity})
+		cursor.execute("SELECT id, name, type, status, value FROM switches")
+		for id, name, switchType, status, value in cursor:
+			switches.append({'id': id, 'name': name, 'type': switchType, 'status': status, 'value': value})
 		cursor.close()
 	except mariadb.Error as error:
 		print("Error: {}".format(error))
 	#mariadb_connection.commit()
-	return jsonify({'responseType': 'measurement', 'measurements': measurement})
+	return jsonify({'responseType': 'status', 'switches': switches})
 
 # ===============================================================
-# =====================[ DATABASE INFO ]=========================
+# =====================[ PRESET ]=========================
 # ===============================================================
 
-@app.route('/database', methods=['GET'])
-#@auth.login_required
-def getDatabaseSize():
+@app.route('/preset/<int:presetNo>', methods=['GET'])
+@auth.login_required
+def setPreset(presetNo):
+	global presets
+	for preset in presets:
+		if preset[0] == presetNo:
+			for switch in preset[1]:
+				updateSwitch(switch[0], switch[1], switch[2])
+	return getStatus()
+
+
+# ===============================================================
+# ========================[ UPDATE SWITCH ]==========================
+# ===============================================================
+def updateSwitch(switchNo, status, value = None):
 	global mariadb_connection
 	if mariadb_connection.is_connected() == False:
 		openConnection()
 	try:
-		db = []
 		cursor = mariadb_connection.cursor()
-		cursor.execute("SELECT MAX(id) FROM measurements")
-		numOfMeasurements = 0
-		for maxId in cursor:
-			numOfMeasurements = maxId[0]
-		cursor.execute("SELECT table_schema AS \"Database\", SUM(data_length + index_length) / 1024 / 1024 AS \"Size (MB)\" FROM information_schema.TABLES WHERE table_schema LIKE \"weatherstation\" GROUP BY table_schema")
-		for database, size in cursor:
-			db.append({'database': database, 'numOfMeasurements': str(numOfMeasurements), 'size': size})
+		query = "UPDATE switches SET status="
+		query += str(status)
+		if value != None:
+			# if value != 0:
+			# 	query += str(status)
+			# else:
+			# 	query += "0"
+			query += ", value="
+			query += str(value)
+		# else:
+		# 	query += str(status)
+		query += " WHERE id="
+		query += str(switchNo)
+
+		print("query: {}".format(query))
+		
+		cursor.execute(query)
 		cursor.close()
 	except mariadb.Error as error:
 		print("Error: {}".format(error))
-	#mariadb_connection.commit()
-	return jsonify({'responseType': 'database', 'database': db})
 
 # ===============================================================
 # ========================[ START APP ]==========================

@@ -26,12 +26,34 @@ switches = [
     ["8", "Światło 8", "button", 0, 0],
     ["9", "Światło 9", "button", 0, 0],
     ["10", "Światło 10", "button", 0, 0],
+    ["11", "LED", "slider", 0, 0],
 ]
 
-#todo put in DB
-for switch in switches:
+if mariadb_connection.is_connected() == False:
+    openConnection()
+try:
+    #drop all records in switches
     cursor = mariadb_connection.cursor()
-    cursor.execute("SELECT id, DATE_FORMAT(time, \"%d-%m-%Y %T\"), tempinside1, tempinside2, tempoutside, pressure, humidity FROM measurements WHERE time between %s and %s", (dateFrom, dateTo))
-    for id, time, tempinside1, tempinside2, tempoutside, pressure, humidity in cursor:
-        measurements.append({'id': id, 'time': time, 'tempinside1': tempinside1, 'tempinside2': tempinside2, 'tempoutside': tempoutside, 'pressure': pressure, 'humidity': humidity})
+    cursor.execute("DELETE FROM switches;")
+except mariadb.Error as error:
+    print("Error: {}".format(error))
+
+try:
+    for switch in switches:
+        cursor = mariadb_connection.cursor()
+        # put in DB
+        stringToPaste = "INSERT INTO switches (id, name, type, status, value) VALUES ('"
+        stringToPaste += switch[0]
+        stringToPaste += "', '"
+        stringToPaste += switch[1]
+        stringToPaste += "', '"
+        stringToPaste += switch[2]
+        stringToPaste += "', '"
+        stringToPaste += str(switch[3])
+        stringToPaste += "', '"
+        stringToPaste += str(switch[4])
+        stringToPaste += "');"
+        cursor.execute(stringToPaste)
     cursor.close()
+except mariadb.Error as error:
+    print("Error: {}".format(error))

@@ -1,4 +1,4 @@
-Przed instalacją MariaDB:
+Before instalation MariaDB:
 sudo mysql -u root # I had to use "sudo" since it was new installation
 
 mysql> USE mysql;
@@ -9,8 +9,6 @@ mysql> exit;
 sudo service mysql restart
 --------
 Teraz dopiero można odpalić ten skrypt instalacyjny
-
-
 
 mysql -u cinemadb -p
 ----------
@@ -34,3 +32,31 @@ CREATE TABLE `cinemadb`.`timestamp` (
 `id` INT NOT NULL AUTO_INCREMENT,
 `time` DATETIME NOT NULL,
 PRIMARY KEY (`id`));
+
+
+
+==== FLASK & DB Connector INSTALL
+sudo apt install python3-pip
+python3 -m pip install flask
+python3 -m pip install flask-httpauth
+
+sudo apt-get install libmariadbclient-dev libssl-dev python-mysqldb
+sudo apt --fix-broken install
+
+
+Install connector from install directory
+sudo apt install python3-protobuf
+#python3 -m pip install python3-protobuf
+sudo dpkg -i mysql-connector-python-py3_8.0.12-1debian9_all.deb
+
+==========
+FLASK CONVERTER TYPES
+string (default) accepts any text without a slash
+
+int accepts positive integers
+
+float accepts positive floating point values
+
+path like string but also accepts slashes
+
+uuid accepts UUID strings
